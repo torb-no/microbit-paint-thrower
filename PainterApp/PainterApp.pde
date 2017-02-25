@@ -1,6 +1,7 @@
 import processing.serial.*;
+import java.util.ArrayList;
 
-Serial serialPointer;
+ArrayList<Serial> serialInputs = new ArrayList();
 float y, x;
 float compassHead, compassHeadZeroPoint;
 boolean button1Pressed = false;
@@ -11,13 +12,13 @@ void setup() {
 	size(512, 512);
 	canvas = createGraphics(width, height);
 
-	String portName = Serial.list()[1];
-	serialPointer = new Serial(this, portName, 115200);
+	serialInputs.add(new Serial(this, Serial.list()[1], 115200));
+	serialInputs.add(new Serial(this, Serial.list()[2], 115200));
 }
 
 void draw() {
 	// Preproccessing
-	processVars();
+	processSerials();
 	paintOnCanvas();
 
 	// Display on screen
@@ -26,56 +27,58 @@ void draw() {
 	drawPointer();
 }
 
-void processVars() {
-	if (serialPointer.available() > 0) {
-		String buffer = serialPointer.readString();
-		String[] vars = buffer.split("\\s+");
+void processSerials() {
+	for (Serial serial : serialInputs) {
+		if (serial.available() > 0) {
+			String buffer = serial.readString();
+			String[] vars = buffer.split("\\s+");
 
-		for (String var : vars) {
-			// println("var: "+var);
-			String[] keyval = var.split(":");
+			for (String var : vars) {
+				String[] keyval = var.split(":");
 
-			try {
-				if (keyval.length > 1) {
-					String key = keyval[0];
-					String valStr = keyval[1];
-					int valFloat = Integer.parseInt(valStr.trim());
-
-					switch (keyval[0]) {
-						case "y":
-							float yInPercent = ((valFloat * -1.0) + 80.0) / 160.0;
-							y = yInPercent * height;
-							break;
-
-						case "r": // When using roll
-							float xFromRollInPercent = (valFloat + 80.0) / 160.0;
-							x = xFromRollInPercent * width;
-							break;
-
-						case "b": // Button B is pressed on first controller
-							button1Pressed = true;
-							break;
-
-						case "a": // Button A is pressed on first controller
-							// Set heading zero point (forward)
-							compassHeadZeroPoint = compassHead;
-							break;
-
-						case "x": // When using compass
-							compassHead = valFloat;
-							println("compassHead: "+compassHead);
-							float xInFromCompassInPercent = compassHead / 120.0;
-							x = xInFromCompassInPercent * width;
-							break;
+				try {
+					if (keyval.length > 1) {
+						String key = keyval[0];
+						String valStr = keyval[1];
+						int val = Integer.parseInt(valStr.trim());
+						processVars(key, val);
 					}
 				}
+				catch (NumberFormatException e) {
+					// Do nothing
+				}
 			}
-			catch (NumberFormatException e) {
-				// Do nada
-			}
-			
 		}
+	}
+}
 
+void processVars(String key, int val) {
+	switch (key) {
+		case "y":
+			float yInPercent = ((val * -1.0) + 80.0) / 160.0;
+			y = yInPercent * height;
+			break;
+
+		case "r": // When using roll
+			float xFromRollInPercent = (val + 80.0) / 160.0;
+			x = xFromRollInPercent * width;
+			break;
+
+		case "b": // Button B is pressed on first controller
+			button1Pressed = true;
+			break;
+
+		case "a": // Button A is pressed on first controller
+			// Set heading zero point (forward)
+			compassHeadZeroPoint = compassHead;
+			break;
+
+		case "x": // When using compass
+			compassHead = val;
+			println("compassHead: "+compassHead);
+			float xInFromCompassInPercent = compassHead / 120.0;
+			x = xInFromCompassInPercent * width;
+			break;
 	}
 }
 
