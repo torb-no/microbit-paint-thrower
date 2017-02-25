@@ -1,7 +1,7 @@
 import processing.serial.*;
 
 Serial serialPointer;
-float y;
+float y, x;
 
 void setup() {
 	size(512, 512);
@@ -23,21 +23,29 @@ void processVars() {
 		String[] vars = buffer.split("\\s+");
 
 		for (String var : vars) {
+			// println("var: "+var);
 			String[] keyval = var.split(":");
 
 			try {
 				if (keyval.length > 1) {
 					String key = keyval[0];
 					String valStr = keyval[1];
-					float val = Float.parseFloat(valStr.trim());
+					float valFloat = Float.parseFloat(valStr.trim());
 
 					switch (keyval[0]) {
 						case "y":
-							float yInPercent = ((val * -1.0) + 80.0) / 160.0;
+							float yInPercent = ((valFloat * -1.0) + 80.0) / 160.0;
 							y = yInPercent * height;
+							break;
 
+						case "r": // When using roll
+							float xInPercent = (valFloat + 80.0) / 160.0;
+							x = xInPercent * width;
+							println("var: "+var);
+							break;
 
-							println("val: "+val);
+						case "c": // When using compass
+							// None here so far
 							break;
 					}
 				}
@@ -52,8 +60,9 @@ void processVars() {
 }
 
 void drawPointer() {
-	ellipse(width/2, y, 5, 5);
+	ellipse(x, y, 5, 5);
 }
+
 
 // String getMicrobitPort() {
 
