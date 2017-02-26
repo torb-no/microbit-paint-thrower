@@ -8,15 +8,12 @@ float compass, compassAdjust;
 PGraphics canvas;
 
 void setup() {
-	size(1024, 1024);
+	size(776, 776);
 	// fullScreen();
 
-	canvas = createGraphics(width, height);
-	canvas.beginDraw();
-	canvas.background(255);
-	canvas.endDraw();
-
-	addSerials();
+	setupPointerStart();
+	setupCanvas();
+	setupSerials();
 }
 
 void draw() {
@@ -115,7 +112,19 @@ void processSerials() {
 	}
 }
 
-void addSerials() {
+void setupPointerStart() {
+	pointerX = width/2;
+	pointerY = height/2;
+}
+
+void setupCanvas() {
+	canvas = createGraphics(width, height);
+	canvas.beginDraw();
+	canvas.background(255);
+	canvas.endDraw();
+}
+
+void setupSerials() {
 	// Attempts to add all Micro bits to serials list
 	for (String s : Serial.list()) {
 		// Assumes Micro bits has "usbmodem" in their name
@@ -124,6 +133,7 @@ void addSerials() {
 				serialInputs.add(new Serial(this, s, 115200));
 			} 
 			catch (RuntimeException e) {
+				// Ignore Exceptions pertaining to busy ports
 				if (e.getMessage().indexOf("Port busy") == -1) {
 					throw e;
 				}
