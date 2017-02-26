@@ -8,16 +8,15 @@ float compass, compassAdjust;
 PGraphics canvas;
 
 void setup() {
-	noStroke();
 	size(1024, 1024);
 	// fullScreen();
+
 	canvas = createGraphics(width, height);
 	canvas.beginDraw();
 	canvas.background(255);
 	canvas.endDraw();
 
-	serialInputs.add(new Serial(this, Serial.list()[1], 115200));
-	serialInputs.add(new Serial(this, Serial.list()[2], 115200));
+	addSerials();
 }
 
 void draw() {
@@ -30,66 +29,10 @@ void draw() {
 	drawPointer();
 }
 
-void processSerials() {
-	for (Serial serial : serialInputs) {
-		if (serial.available() > 0) {
-			String buffer = serial.readString();
-			String[] vars = buffer.split("\\s+");
-
-			for (String var : vars) {
-				String[] keyval = var.split(":");
-
-				if (keyval.length > 1) {
-					String key = keyval[0];
-					String valStr = keyval[1];
-
-					try {
-						int val = Integer.parseInt(valStr.trim());
-
-						processVar(key, val);
-					}
-					catch (NumberFormatException e) { /* Do nothing */ }
-				}
-			}	
-		}
-	}
-}
-
-void processVar(String key, int val) {
-	switch (key) {
-
-		case "y": // Pitch of left microbit
-			float yInPercent = ((val * -1.0) + 80.0) / 160.0;
-			pointerY = int(yInPercent * height);
-			break;
-
-		case "a": // Button A is pressed on left microbit
-			// Set heading zero point (forward)
-			compassAdjust = compass;
-			// println("compass: "+compass);
-			break;
-
-		case "x": // Compass head direction on left microbit
-			compass = val;
-			float xInFromCompassInPercent = ((compass - compassAdjust + 60) % 360) / 120.0;
-			if (keyPressed) {
-				println(compass + "\t" + compassAdjust + "\t" + xInFromCompassInPercent);
-			}
-			pointerX = int(xInFromCompassInPercent * width);
-			break;
-
-		case "g": // Throwing motion done with right micro bit
-			paintThrow = val;
-			break;
-
-	}
-}
-
 void drawPointer() {
 	fill(0);
 	ellipse(pointerX, pointerY, 5, 5);
 }
-
 
 void paintOnCanvas() {
 	if (paintThrow != -1) {
@@ -118,3 +61,75 @@ void paintOnCanvas() {
 		paintThrow = -1;
 	}
 }
+
+void processVar(String key, int val) {
+	switch (key) {
+
+		case "y": // Pitch of left micro bit
+			float yInPercent = ((val * -1.0) + 80.0) / 160.0;
+			pointerY = int(yInPercent * height);
+			break;
+
+		case "a": // Button A is pressed on left micro bit
+		case "b": // Button B is presed on the right micro bit
+			// Set compass adjust
+			compassAdjust = compass;
+			break;
+
+		case "x": // Compass head direction on left micro bit
+			compass = val;
+			float compassAfterAdjustment = (compass - compassAdjust + 60) % 360;
+			float xInFromCompassInPercent = compassAfterAdjustment / 120.0;
+			pointerX = int(xInFromCompassInPercent * width);
+			break;
+
+		case "g": // Throwing motion done with right micro bit
+			paintThrow = val;
+			break;
+
+	}
+}
+
+void processSerials() {
+	for (Serial serial : serialInputs) {
+		if (serial.available() > 0) {
+			String buffer = serial.readString();
+			String[] vars = buffer.split("\\s+");
+
+			for (String var : vars) {
+				String[] keyval = var.split(":");
+
+				if (keyval.length > 1) {
+					String key = keyval[0];
+					String valStr = keyval[1];
+
+					try {
+						int val = Integer.parseInt(valStr.trim());
+
+						processVar(key, val);
+					}
+					catch (NumberFormatException e) { /* Do nothing */ }
+				}
+			}	
+		}
+	}
+}
+
+void addSerials() {
+	// Attempts to add all Micro bits to serials list
+	for (String s : Serial.list()) {
+		// Assumes Micro bits has "usbmodem" in their name
+		if (s.indexOf("usbmodem") != -1) {
+			try {
+				serialInputs.add(new Serial(this, s, 115200));
+			} 
+			catch (RuntimeException e) {
+				if (e.getMessage().indexOf("Port busy") == -1) {
+					throw e;
+				}
+			}
+		}
+	}
+}
+
+
