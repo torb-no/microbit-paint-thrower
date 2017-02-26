@@ -4,13 +4,13 @@ import java.util.ArrayList;
 ArrayList<Serial> serialInputs = new ArrayList();
 int pointerX, pointerY;
 int paintThrow = -1;
-float compassHead, compassHeadZeroPoint;
+float compass, compassAdjust;
 PGraphics canvas;
 
 void setup() {
 	noStroke();
-	// size(1024, 1024);
-	fullScreen();
+	size(1024, 1024);
+	// fullScreen();
 	canvas = createGraphics(width, height);
 	canvas.beginDraw();
 	canvas.background(255);
@@ -27,7 +27,7 @@ void draw() {
 
 	// Display on screen
 	image(canvas, 0, 0, width, height);
-	// drawPointer();
+	drawPointer();
 }
 
 void processSerials() {
@@ -39,46 +39,49 @@ void processSerials() {
 			for (String var : vars) {
 				String[] keyval = var.split(":");
 
-				try {
-					if (keyval.length > 1) {
-						String key = keyval[0];
-						String valStr = keyval[1];
+				if (keyval.length > 1) {
+					String key = keyval[0];
+					String valStr = keyval[1];
+
+					try {
 						int val = Integer.parseInt(valStr.trim());
 
-						// println("var: "+var);
-						processVars(key, val);
+						processVar(key, val);
 					}
+					catch (NumberFormatException e) { /* Do nothing */ }
 				}
-				catch (NumberFormatException e) {
-					// Do nothing
-				}
-			}
+			}	
 		}
 	}
 }
 
-void processVars(String key, int val) {
+void processVar(String key, int val) {
 	switch (key) {
-		case "y": // Pitch
+
+		case "y": // Pitch of left microbit
 			float yInPercent = ((val * -1.0) + 80.0) / 160.0;
 			pointerY = int(yInPercent * height);
 			break;
 
-		case "a": // Button A is pressed on first controller
+		case "a": // Button A is pressed on left microbit
 			// Set heading zero point (forward)
-			compassHeadZeroPoint = compassHead;
-			println("compassHead: "+compassHead);
+			compassAdjust = compass;
+			// println("compass: "+compass);
 			break;
 
-		case "x": // Compass head
-			compassHead = val;
-			float xInFromCompassInPercent = compassHead / 120.0;
+		case "x": // Compass head direction on left microbit
+			compass = val;
+			float xInFromCompassInPercent = ((compass - compassAdjust + 60) % 360) / 120.0;
+			if (keyPressed) {
+				println(compass + "\t" + compassAdjust + "\t" + xInFromCompassInPercent);
+			}
 			pointerX = int(xInFromCompassInPercent * width);
 			break;
 
-		case "g":
+		case "g": // Throwing motion done with right micro bit
 			paintThrow = val;
 			break;
+
 	}
 }
 
@@ -87,15 +90,17 @@ void drawPointer() {
 	ellipse(pointerX, pointerY, 5, 5);
 }
 
+
 void paintOnCanvas() {
 	if (paintThrow != -1) {
 		canvas.beginDraw();
 
 		canvas.colorMode(HSB, 255);
+		canvas.noStroke();
 		canvas.translate(pointerX, pointerY);
+
 		int paintBalls = paintThrow * 3;
 		float opacityAdjust = paintThrow * 20;
-		canvas.noStroke();
 
 		canvas.fill(0, 0, 200, 200);
 		for (int i=0; i<paintBalls; i++) {
@@ -110,7 +115,6 @@ void paintOnCanvas() {
 		}
 		
 		canvas.endDraw();
-
 		paintThrow = -1;
 	}
 }
