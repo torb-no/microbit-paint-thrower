@@ -1,4 +1,4 @@
-# Microbit Pain Thrower
+# Microbit Paint Thrower
 
 My contribution to the [micro:bit.party](https://www.microbitparty.net), a hackathon around creating fun projects for kids to learn BBC Micro:bit..
 
